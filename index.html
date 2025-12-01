@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>동양미래대학교 3호관 키오스크 안내 (세로 모드)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font family for a clean look -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Target 4K Portrait resolution look: 2160 x 3840 */
+            height: 100vh;
+            width: 100vw;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        /* Custom button styling for large touch targets */
+        .kiosk-button {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .kiosk-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.2), 0 6px 10px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Adjust padding for vertical layout */
+        #screen-container {
+            padding: 5rem; /* Reduced padding slightly for more vertical space */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app" class="w-full h-full p-20 flex flex-col items-center justify-center bg-gray-100">
+        <!-- Main Content Area: Now optimized for portrait (e.g., 2160x3840) -->
+        <div id="screen-container" class="w-full h-full bg-white rounded-3xl shadow-2xl p-24 flex flex-col">
+            
+            <!-- Dynamic Screen Content will be injected here -->
+
+        </div>
+
+        <!-- Notification Modal (Used instead of alert()) -->
+        <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden items-center justify-center">
+            <div class="bg-white p-16 rounded-3xl shadow-2xl max-w-4xl text-center">
+                <h3 id="modal-title" class="text-6xl font-extrabold mb-8 text-indigo-700"></h3>
+                <p id="modal-message" class="text-4xl mb-12 text-gray-700"></p>
+                <button onclick="closeModal()" class="kiosk-button bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-8 px-16 rounded-xl text-5xl">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 상태 관리 변수
+        let currentScreen = 'start';
+        const screenContainer = document.getElementById('screen-container');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // 목업 데이터 (3호관 층 정보)
+        const floorData = {
+            '2F': {
+                name: '학과 사무실 및 실습실',
+                details: '컴퓨터공학부 사무실 (201호) 및 주요 실습실',
+                contact: '02-1234-5678',
+                service: true // 사전 신청 가능 여부
+            },
+            '3F': { name: '강의실 및 연구실', details: '주요 이론 강의실', contact: '정보 없음', service: false },
+            '4F': { name: '학생 휴게 공간', details: '열람실 및 스터디룸', contact: '정보 없음', service: false }
+            // 기타 층 정보 추가 가능
+        };
+
+        // ====================================================================
+        // 유틸리티 함수
+        // ====================================================================
+
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('notification-modal').classList.remove('hidden');
+            document.getElementById('notification-modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('notification-modal').classList.add('hidden');
+            document.getElementById('notification-modal').classList.remove('flex');
+        }
+
+        function navigateTo(screen, data = null) {
+            currentScreen = screen;
+            renderScreen(data);
+        }
+
+        // ====================================================================
+        // 화면 렌더링 함수
+        // ====================================================================
+
+        function renderScreen(data = null) {
+            screenContainer.innerHTML = '';
+            
+            // 뒤로가기 버튼과 처음으로 버튼을 상단에 추가 (시작 화면 제외)
+            if (currentScreen !== 'start') {
+                // Default back action is to the map screen
+                let backButtonOnClick = "navigateTo('map')";
+
+                if (currentScreen === 'service_selection') {
+                    // If we are on service selection, go back to the specific floor detail screen (e.g., 2F)
+                    backButtonOnClick = `MapsTo('floor_detail', '2F')`; // Assuming service selection is only for 2F
+                }
+
+                const buttonBar = `
+                    <div class="flex justify-between w-full mb-12">
+                        <!-- 뒤로 가기 버튼 (왼쪽) -->
+                        <button onclick="${backButtonOnClick}" class="kiosk-button bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 px-8 rounded-xl text-4xl flex items-center">
+                            <svg class="w-10 h-10 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            뒤로 가기
+                        </button>
+                        <!-- 처음으로 버튼 (오른쪽) -->
+                        <button onclick="navigateTo('start')" class="kiosk-button bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-xl text-4xl flex items-center">
+                            <svg class="w-10 h-10 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            처음으로
+                        </button>
+                    </div>
+                `;
+                screenContainer.innerHTML += buttonBar;
+            }
+
+            switch (currentScreen) {
+                case 'start':
+                    showStartScreen();
+                    break;
+                case 'map':
+                    showMapScreen();
+                    break;
+                case 'floor_detail':
+                    showFloorDetail(data); // data is the floor ID (e.g., '2F')
+                    break;
+                case 'service_selection':
+                    showServiceSelection(data); // data is the floor ID (which should be '2F')
+                    break;
+                default:
+                    showStartScreen();
+            }
+        }
+
+        // 1. 시작 화면
+        function showStartScreen() {
+            screenContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center w-full h-full text-center">
+                    <h1 class="text-8xl font-black text-gray-800 mb-20">동양미래대학교 3호관</h1>
+                    <!-- Uploaded Image -->
+                    <img src="images.png" class="w-96 h-auto mb-40" alt="동양미래대학교 로고">
+                    
+                    <button onclick="navigateTo('map')" class="kiosk-button bg-blue-500 hover:bg-blue-600 text-white font-extrabold py-16 px-40 rounded-3xl text-7xl">
+                        시작하기
+                    </button>
+                    <p class="mt-24 text-3xl text-gray-400">앱 ID: ${appId}</p>
+                </div>
+            `;
+        }
+
+        // 2. 층별 안내 화면 (지도 화면) - 세로 레이아웃으로 변경
+        function showMapScreen() {
+            const floorButtons = Object.keys(floorData).map(floor => {
+                return `
+                    <button onclick="navigateTo('floor_detail', '${floor}')" 
+                        class="kiosk-button bg-teal-500 hover:bg-teal-600 text-white font-bold py-10 rounded-xl text-5xl w-full mb-8">
+                        ${floor}
+                    </button>
+                `;
+            }).join('');
+
+            // screenContainer.innerHTML += ... : 이미 renderScreen에서 버튼 바가 추가되었으므로, 여기에 나머지 내용을 추가합니다.
+            screenContainer.innerHTML += `
+                <h2 class="text-7xl font-extrabold text-gray-800 mb-16 text-center w-full">3호관 층별 안내</h2>
+                <div class="flex flex-col w-full h-full space-y-12">
+                    
+                    <!-- 층별 평면도 Placeholder (상단) -->
+                    <div class="flex-grow bg-gray-200 rounded-2xl flex items-center justify-center border-4 border-dashed border-gray-400 p-10 h-3/5 min-h-[1000px]">
+                        <div class="text-center">
+                            <svg class="mx-auto w-32 h-32 text-gray-500 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            <p class="text-5xl font-semibold text-gray-700">층별 평면도 자리</p>
+                            <p class="text-3xl text-gray-500 mt-4">실제 평면도를 이곳에 표시합니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- 층 선택 메뉴 (하단) -->
+                    <div class="w-full flex flex-col justify-center space-y-8 h-2/5 max-h-[1000px]">
+                        <p class="text-4xl font-semibold text-gray-700 border-b pb-4">층 선택</p>
+                        <!-- 버튼을 2열로 배치하여 세로 공간 활용 -->
+                        <div class="grid grid-cols-2 gap-8">
+                            ${floorButtons}
+                        </div>
+                    </div>
+
+                </div>
+            `;
+        }
+
+        // 3. 특정 층 상세 정보 화면 - 세로 레이아웃으로 변경
+        function showFloorDetail(floor) {
+            const data = floorData[floor] || { name: '정보 없음', details: '해당 층에 대한 정보가 없습니다.', contact: '정보 없음', service: false };
+            
+            let specialContent = '';
+            
+            // 2층에 대한 특별 처리 (학과 사무실)
+            if (floor === '2F') {
+                specialContent = `
+                    <div class="bg-indigo-50 p-12 rounded-2xl border-4 border-indigo-200 mb-12 w-full">
+                        <h3 class="text-6xl font-bold text-indigo-700 mb-6">학과 사무실 연락처</h3>
+                        <p class="text-9xl font-extrabold text-red-600 tracking-wider">${data.contact}</p>
+                        <p class="text-4xl mt-4 text-indigo-600">문의 사항은 위 번호로 연락주세요.</p>
+                    </div>
+
+                    <!-- 서비스 신청 버튼: 이제 서비스 선택 화면으로 이동합니다. -->
+                    <button onclick="handleServiceApplication('${floor}')" class="kiosk-button bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-extrabold py-12 px-20 rounded-2xl text-6xl shadow-xl transition duration-300 ease-in-out w-full">
+                        서비스 사전 신청 바로가기
+                    </button>
+                    <p class="text-3xl mt-6 text-gray-500">신청 버튼을 누르면 항목 선택 페이지로 이동합니다.</p>
+                `;
+            } else {
+                // 2층이 아닌 경우 일반 정보 표시
+                specialContent = `
+                    <div class="bg-white p-12 rounded-2xl border-2 border-gray-200 mb-8 shadow-lg w-full">
+                        <h3 class="text-6xl font-bold text-gray-700 mb-6">${data.name}</h3>
+                        <p class="text-4xl text-gray-600">${data.details}</p>
+                    </div>
+                    <div class="bg-gray-100 p-10 rounded-xl w-full">
+                        <p class="text-4xl font-semibold text-gray-600 mb-4">대표 연락처</p>
+                        <p class="text-6xl font-extrabold text-gray-800">${data.contact}</p>
+                    </div>
+                `;
+            }
+
+            // Render the screen structure
+            // screenContainer.innerHTML += ... : 이미 renderScreen에서 버튼 바가 추가되었으므로, 여기에 나머지 내용을 추가합니다.
+            screenContainer.innerHTML += `
+                <h2 class="text-7xl font-extrabold text-gray-800 mb-16 w-full text-center">3호관 ${floor} 상세 정보</h2>
+                
+                <div class="flex flex-col w-full h-full space-y-12">
+                    
+                    <!-- 층별 평면도 Placeholder (상단) -->
+                    <div class="flex-grow bg-gray-200 rounded-2xl flex items-center justify-center border-4 border-dashed border-gray-400 p-10 h-1/2 min-h-[900px]">
+                        <div class="text-center">
+                            <svg class="mx-auto w-32 h-32 text-gray-500 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6a2 2 0 00-2-2H5a2 2 0 00-2 2v13m7 0h2m-7 0h7"></path></svg>
+                            <p class="text-5xl font-semibold text-gray-700">${floor} 평면도</p>
+                            <p class="text-3xl text-gray-500 mt-4">${data.name} 위치 표시</p>
+                        </div>
+                    </div>
+
+                    <!-- 상세 정보 패널 (하단) -->
+                    <div class="w-full flex flex-col items-center h-1/2">
+                        <div class="w-full text-center mb-10">
+                            <p class="text-5xl font-semibold text-teal-600">${data.name}</p>
+                        </div>
+                        ${specialContent}
+                    </div>
+
+                </div>
+            `;
+        }
+        
+        // 4. 서비스 사전 신청 선택 화면 (2F 전용)
+        function showServiceSelection(floor) {
+            const serviceButtons = [
+                { label: '출석 관련', action: 'attendance' },
+                { label: '근로 신청 관련', action: 'work_application' },
+                { label: '학교 대회 일정 관련', action: 'competition_schedule' },
+                { label: '동아리/학교 축제 일정 관련', action: 'festival_schedule' }
+            ];
+
+            const buttonsHTML = serviceButtons.map(btn => `
+                <button onclick="handleServiceAction('${btn.action}')" 
+                    class="kiosk-button bg-blue-500 hover:bg-blue-600 text-white font-extrabold py-10 rounded-xl text-5xl w-full">
+                    ${btn.label}
+                </button>
+            `).join('');
+
+            screenContainer.innerHTML += `
+                <h2 class="text-7xl font-extrabold text-gray-800 mb-16 w-full text-center">${floor} 학과 사무실 서비스 선택</h2>
+                
+                <div class="flex flex-col w-full h-full space-y-16 justify-center">
+                    
+                    <p class="text-5xl font-medium text-gray-600 text-center">원하시는 서비스 항목을 선택해주세요.</p>
+
+                    <!-- 서비스 선택 버튼 그리드 -->
+                    <div class="grid grid-cols-2 gap-10">
+                        ${buttonsHTML}
+                    </div>
+
+                    <div class="mt-20 p-10 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <p class="text-3xl text-yellow-800 font-semibold text-center">
+                            선택하신 항목에 대한 자세한 안내 및 신청 페이지로 이동됩니다. (현재는 안내 모달 표시)
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 서비스 사전 신청 버튼 핸들러 (서비스 선택 화면으로 이동)
+        function handleServiceApplication(floor) {
+            navigateTo('service_selection', floor);
+        }
+
+        // 5. 서비스 버튼 클릭 핸들러 (모달 표시)
+        function handleServiceAction(action) {
+            let title = '안내 페이지 이동';
+            let message = '';
+            
+            switch(action) {
+                case 'attendance':
+                    message = '출석 관련 문의 및 신청 페이지로 이동합니다. (실제 서비스 연동 필요)';
+                    break;
+                case 'work_application':
+                    message = '학생 근로 신청 및 관련 정보 페이지로 이동합니다. (실제 서비스 연동 필요)';
+                    break;
+                case 'competition_schedule':
+                    message = '학교 대회 일정 및 신청 페이지로 이동합니다. (실제 서비스 연동 필요)';
+                    break;
+                case 'festival_schedule':
+                    message = '동아리/학교 축제 일정 관련 페이지로 이동합니다. (실제 서비스 연동 필요)';
+                    break;
+                default:
+                    message = '알 수 없는 서비스 항목입니다.';
+            }
+
+            showModal(title, message);
+        }
+
+        // 초기 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            renderScreen();
+        });
+
+    </script>
+</body>
+</html>
